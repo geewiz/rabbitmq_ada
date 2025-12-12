@@ -1,9 +1,10 @@
---  Test program for RabbitMQ connection and channel functionality
+--  Test program for RabbitMQ connection, channel, and queue functionality
 
 with Ada.Text_IO;
 with Ada.Exceptions;
 with RabbitMQ.Connections;
 with RabbitMQ.Channels;
+with RabbitMQ.Queues;
 with RabbitMQ.Exceptions;
 
 procedure Test_Connection is
@@ -12,8 +13,8 @@ procedure Test_Connection is
    Conn : RabbitMQ.Connections.Connection;
    Ch   : RabbitMQ.Channels.Channel;
 begin
-   Put_Line ("RabbitMQ Connection and Channel Test");
-   Put_Line ("====================================");
+   Put_Line ("RabbitMQ Connection, Channel, and Queue Test");
+   Put_Line ("============================================");
    New_Line;
 
    begin
@@ -49,44 +50,93 @@ begin
                    RabbitMQ.Channels.Get_Number (Ch)'Image & " opened!");
       else
          Put_Line ("   FAILED: Channel reports not open");
+         return;
       end if;
-
-      Put_Line ("   Closing channel...");
-      RabbitMQ.Channels.Close (Ch);
-      Put_Line ("   Channel closed.");
 
       New_Line;
 
-      --  Test multiple channels
-      Put_Line ("3. Testing Multiple Channels");
+      --  Test queue operations
+      Put_Line ("3. Testing Queue Operations");
+
+      --  Declare a named queue
+      Put_Line ("   Declaring queue 'test-queue'...");
       declare
-         Ch1, Ch2, Ch3 : RabbitMQ.Channels.Channel;
+         Info : constant RabbitMQ.Queues.Queue_Info :=
+           RabbitMQ.Queues.Declare_Queue
+             (Ch          => Ch,
+              Name        => "test-queue",
+              Durable     => False,
+              Exclusive   => False,
+              Auto_Delete => True);
+         Queue_Name : constant String :=
+           Info.Name (1 .. Info.Name_Length);
       begin
-         Put_Line ("   Opening channels 1, 2, and 3...");
-         RabbitMQ.Channels.Open (Ch1, Conn, Number => 1);
-         RabbitMQ.Channels.Open (Ch2, Conn, Number => 2);
-         RabbitMQ.Channels.Open (Ch3, Conn, Number => 3);
+         Put_Line ("   SUCCESS: Queue '" & Queue_Name & "' declared");
+         Put_Line ("   Message count:" & Info.Message_Count'Image);
+         Put_Line ("   Consumer count:" & Info.Consumer_Count'Image);
+      end;
 
-         if RabbitMQ.Channels.Is_Open (Ch1) and
-            RabbitMQ.Channels.Is_Open (Ch2) and
-            RabbitMQ.Channels.Is_Open (Ch3)
-         then
-            Put_Line ("   SUCCESS: All three channels opened!");
-         else
-            Put_Line ("   FAILED: Not all channels are open");
-         end if;
+      --  Declare an anonymous queue (broker-generated name)
+      Put_Line ("   Declaring anonymous queue...");
+      declare
+         Info : constant RabbitMQ.Queues.Queue_Info :=
+           RabbitMQ.Queues.Declare_Queue
+             (Ch        => Ch,
+              Exclusive => True);
+         Queue_Name : constant String :=
+           Info.Name (1 .. Info.Name_Length);
+      begin
+         Put_Line ("   SUCCESS: Anonymous queue '" &
+                   Queue_Name & "' declared");
 
-         Put_Line ("   Closing channels...");
-         RabbitMQ.Channels.Close (Ch1);
-         RabbitMQ.Channels.Close (Ch2);
-         RabbitMQ.Channels.Close (Ch3);
-         Put_Line ("   All channels closed.");
+         --  Delete the anonymous queue
+         Put_Line ("   Deleting anonymous queue...");
+         RabbitMQ.Queues.Delete (Ch, Queue_Name);
+         Put_Line ("   SUCCESS: Queue deleted");
+      end;
+
+      --  Bind and unbind queue
+      Put_Line ("   Binding 'test-queue' to 'amq.direct' exchange...");
+      RabbitMQ.Queues.Bind
+        (Ch          => Ch,
+         Queue       => "test-queue",
+         Exchange    => "amq.direct",
+         Routing_Key => "test-key");
+      Put_Line ("   SUCCESS: Queue bound");
+
+      Put_Line ("   Unbinding 'test-queue' from 'amq.direct' exchange...");
+      RabbitMQ.Queues.Unbind
+        (Ch          => Ch,
+         Queue       => "test-queue",
+         Exchange    => "amq.direct",
+         Routing_Key => "test-key");
+      Put_Line ("   SUCCESS: Queue unbound");
+
+      --  Purge queue
+      Put_Line ("   Purging 'test-queue'...");
+      declare
+         Purged : constant Natural := RabbitMQ.Queues.Purge (Ch, "test-queue");
+      begin
+         Put_Line ("   SUCCESS: Purged" & Purged'Image & " messages");
+      end;
+
+      --  Delete queue
+      Put_Line ("   Deleting 'test-queue'...");
+      declare
+         Deleted : constant Natural :=
+           RabbitMQ.Queues.Delete (Ch, "test-queue");
+      begin
+         Put_Line ("   SUCCESS: Deleted queue with" &
+                   Deleted'Image & " messages");
       end;
 
       New_Line;
 
       --  Clean up
       Put_Line ("4. Cleanup");
+      Put_Line ("   Closing channel...");
+      RabbitMQ.Channels.Close (Ch);
+      Put_Line ("   Channel closed.");
       Put_Line ("   Closing connection...");
       RabbitMQ.Connections.Close (Conn);
       Put_Line ("   Connection closed.");
