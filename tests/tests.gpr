@@ -7,7 +7,7 @@ project Tests is
    for Exec_Dir use "../bin";
    for Create_Missing_Dirs use "True";
 
-   for Main use ("test_connection.adb");
+   for Main use ("test_connection.adb", "test_tls_connection.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use

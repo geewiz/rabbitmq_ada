@@ -4542,4 +4542,100 @@ AMQP_PROTOCOL_VERSION_MAJOR : constant := 0;  --  /usr/include/amqp_framing.h:45
         Convention => C,
         External_Name => "rabbitmq_ada_login_plain";
 
+   --  ===========================================
+   --  SSL/TLS Socket Functions (from amqp_ssl_socket.h)
+   --  ===========================================
+
+   --  TLS version constants
+   AMQP_TLSv1      : constant := 1;
+   AMQP_TLSv1_1    : constant := 2;
+   AMQP_TLSv1_2    : constant := 3;
+   AMQP_TLSvLATEST : constant := 65535;
+
+   subtype amqp_tls_version_t is Interfaces.C.unsigned;
+
+   --  Create a new SSL/TLS socket object
+   function amqp_ssl_socket_new
+     (state : amqp_connection_state_t) return access amqp_socket_t_u
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_new";
+
+   --  Set the CA certificate
+   function amqp_ssl_socket_set_cacert
+     (self   : access amqp_socket_t_u;
+      cacert : Interfaces.C.Strings.chars_ptr) return int
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_set_cacert";
+
+   --  Set the password for key in PEM format
+   procedure amqp_ssl_socket_set_key_passwd
+     (self   : access amqp_socket_t_u;
+      passwd : Interfaces.C.Strings.chars_ptr)
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_set_key_passwd";
+
+   --  Set the client certificate and key
+   function amqp_ssl_socket_set_key
+     (self : access amqp_socket_t_u;
+      cert : Interfaces.C.Strings.chars_ptr;
+      key  : Interfaces.C.Strings.chars_ptr) return int
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_set_key";
+
+   --  Enable or disable peer verification (deprecated, use set_verify_peer)
+   procedure amqp_ssl_socket_set_verify
+     (self   : access amqp_socket_t_u;
+      verify : amqp_boolean_t)
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_set_verify";
+
+   --  Enable or disable peer certificate verification
+   procedure amqp_ssl_socket_set_verify_peer
+     (self   : access amqp_socket_t_u;
+      verify : amqp_boolean_t)
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_set_verify_peer";
+
+   --  Enable or disable hostname verification
+   procedure amqp_ssl_socket_set_verify_hostname
+     (self   : access amqp_socket_t_u;
+      verify : amqp_boolean_t)
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_set_verify_hostname";
+
+   --  Set min and max TLS versions
+   function amqp_ssl_socket_set_ssl_versions
+     (self : access amqp_socket_t_u;
+      min  : amqp_tls_version_t;
+      max  : amqp_tls_version_t) return int
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_ssl_socket_set_ssl_versions";
+
+   --  Control whether rabbitmq-c initializes the SSL library
+   procedure amqp_set_initialize_ssl_library
+     (do_initialize : amqp_boolean_t)
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_set_initialize_ssl_library";
+
+   --  Initialize the underlying SSL/TLS library
+   function amqp_initialize_ssl_library return int
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_initialize_ssl_library";
+
+   --  Uninitialize the underlying SSL/TLS library
+   function amqp_uninitialize_ssl_library return int
+   with Import => True,
+        Convention => C,
+        External_Name => "amqp_uninitialize_ssl_library";
+
 end RabbitMQ.C_Binding;
