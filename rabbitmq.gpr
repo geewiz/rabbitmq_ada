@@ -4,6 +4,7 @@ project Rabbitmq is
    for Library_Name use "Rabbitmq";
    for Library_Version use Project'Library_Name & ".so." & Rabbitmq_Config.Crate_Version;
 
+   for Languages use ("Ada", "C");
    for Source_Dirs use ("src/", "config/");
    for Object_Dir use "obj/" & Rabbitmq_Config.Build_Profile;
    for Create_Missing_Dirs use "True";

@@ -4519,9 +4519,27 @@ AMQP_PROTOCOL_VERSION_MAJOR : constant := 0;  --  /usr/include/amqp_framing.h:45
 
    --  Assign an open file descriptor to a socket object.
    --  This function must not be used in conjunction with amqp_socket_open().
-   procedure amqp_tcp_socket_set_sockfd (self : access amqp_socket_t_u; sockfd : int)
+   procedure amqp_tcp_socket_set_sockfd
+     (self : access amqp_socket_t_u; sockfd : int)
    with Import => True,
         Convention => C,
         External_Name => "amqp_tcp_socket_set_sockfd";
+
+   --  ===========================================
+   --  Ada helper wrappers (from rabbitmq_ada_helpers.c)
+   --  ===========================================
+
+   --  Non-variadic wrapper for amqp_login with PLAIN authentication
+   function rabbitmq_ada_login_plain
+     (state       : amqp_connection_state_t;
+      vhost       : Interfaces.C.Strings.chars_ptr;
+      channel_max : int;
+      frame_max   : int;
+      heartbeat   : int;
+      username    : Interfaces.C.Strings.chars_ptr;
+      password    : Interfaces.C.Strings.chars_ptr) return amqp_rpc_reply_t
+   with Import => True,
+        Convention => C,
+        External_Name => "rabbitmq_ada_login_plain";
 
 end RabbitMQ.C_Binding;
