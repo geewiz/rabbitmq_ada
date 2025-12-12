@@ -22,6 +22,11 @@ project Rabbitmq is
       for Switches ("Ada") use ("-Es"); --  Symbolic traceback
    end Binder;
 
+   package Linker is
+      --  Link against the system librabbitmq C library
+      for Linker_Options use ("-lrabbitmq");
+   end Linker;
+
    package Install is
       for Artifacts (".") use ("share");
    end Install;
