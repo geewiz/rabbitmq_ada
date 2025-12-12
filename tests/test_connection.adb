@@ -2,14 +2,18 @@
 
 with Ada.Text_IO;
 with Ada.Exceptions;
+with Ada.Strings.Unbounded;
 with RabbitMQ.Connections;
 with RabbitMQ.Channels;
 with RabbitMQ.Queues;
 with RabbitMQ.Exchanges;
+with RabbitMQ.Messages;
+with RabbitMQ.Publishing;
 with RabbitMQ.Exceptions;
 
 procedure Test_Connection is
    use Ada.Text_IO;
+   package SU renames Ada.Strings.Unbounded;
 
    Conn : RabbitMQ.Connections.Connection;
    Ch   : RabbitMQ.Channels.Channel;
@@ -179,8 +183,103 @@ begin
 
       New_Line;
 
+      --  Test publishing
+      Put_Line ("5. Testing Message Publishing");
+
+      --  Create a queue to publish to
+      Put_Line ("   Creating test queue for publishing...");
+      declare
+         Info : constant RabbitMQ.Queues.Queue_Info :=
+           RabbitMQ.Queues.Declare_Queue
+             (Ch          => Ch,
+              Name        => "publish-test-queue",
+              Durable     => False,
+              Exclusive   => False,
+              Auto_Delete => True);
+         pragma Unreferenced (Info);
+      begin
+         Put_Line ("   SUCCESS: Queue created");
+      end;
+
+      --  Publish a simple string message
+      Put_Line ("   Publishing simple string message...");
+      RabbitMQ.Publishing.Publish_To_Queue
+        (Ch   => Ch,
+         Queue => "publish-test-queue",
+         Data  => "Hello, RabbitMQ from Ada!");
+      Put_Line ("   SUCCESS: Simple message published");
+
+      --  Publish a text message
+      Put_Line ("   Publishing text message...");
+      RabbitMQ.Publishing.Publish_To_Queue
+        (Ch      => Ch,
+         Queue   => "publish-test-queue",
+         Message => RabbitMQ.Messages.Text_Message ("This is a text message"));
+      Put_Line ("   SUCCESS: Text message published");
+
+      --  Publish a persistent message
+      Put_Line ("   Publishing persistent message...");
+      RabbitMQ.Publishing.Publish_To_Queue
+        (Ch      => Ch,
+         Queue   => "publish-test-queue",
+         Message => RabbitMQ.Messages.Persistent_Message
+                      ("This message survives restarts", "text/plain"));
+      Put_Line ("   SUCCESS: Persistent message published");
+
+      --  Publish with custom properties
+      Put_Line ("   Publishing message with custom properties...");
+      declare
+         use RabbitMQ.Messages;
+         Msg : Message;
+      begin
+         Msg.Content := SU.To_Unbounded_String ("Message with properties");
+         Msg.Properties.Content_Type :=
+           SU.To_Unbounded_String ("application/json");
+         Msg.Properties.Correlation_Id :=
+           SU.To_Unbounded_String ("req-12345");
+         Msg.Properties.Reply_To :=
+           SU.To_Unbounded_String ("reply-queue");
+         Msg.Properties.Priority := 5;
+         Msg.Properties.Delivery_Mode := Persistent;
+
+         RabbitMQ.Publishing.Publish_To_Queue
+           (Ch      => Ch,
+            Queue   => "publish-test-queue",
+            Message => Msg);
+         Put_Line ("   SUCCESS: Message with properties published");
+      end;
+
+      --  Check message count in queue
+      Put_Line ("   Verifying messages in queue...");
+      declare
+         Info : constant RabbitMQ.Queues.Queue_Info :=
+           RabbitMQ.Queues.Declare_Queue
+             (Ch      => Ch,
+              Name    => "publish-test-queue",
+              Passive => True);
+      begin
+         Put_Line ("   Queue has" & Info.Message_Count'Image & " messages");
+         if Info.Message_Count = 4 then
+            Put_Line ("   SUCCESS: All 4 messages are in the queue!");
+         else
+            Put_Line ("   WARNING: Expected 4 messages");
+         end if;
+      end;
+
+      --  Clean up the publish test queue
+      Put_Line ("   Cleaning up publish test queue...");
+      declare
+         Deleted : constant Natural :=
+           RabbitMQ.Queues.Delete (Ch, "publish-test-queue");
+      begin
+         Put_Line ("   SUCCESS: Deleted queue with" &
+                   Deleted'Image & " messages");
+      end;
+
+      New_Line;
+
       --  Clean up
-      Put_Line ("5. Cleanup");
+      Put_Line ("6. Cleanup");
       Put_Line ("   Closing channel...");
       RabbitMQ.Channels.Close (Ch);
       Put_Line ("   Channel closed.");
