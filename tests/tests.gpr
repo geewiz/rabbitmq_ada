@@ -1,0 +1,25 @@
+with "../rabbitmq.gpr";
+
+project Tests is
+
+   for Source_Dirs use (".");
+   for Object_Dir use "../obj/tests";
+   for Exec_Dir use "../bin";
+   for Create_Missing_Dirs use "True";
+
+   for Main use ("test_connection.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-g", "-gnatwa", "-gnatyg", "-gnatVa", "-gnatQ");
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es");  --  Symbolic traceback
+   end Binder;
+
+   package Linker is
+      for Switches ("Ada") use ("-g");
+   end Linker;
+
+end Tests;
