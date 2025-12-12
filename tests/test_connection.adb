@@ -9,6 +9,7 @@ with RabbitMQ.Queues;
 with RabbitMQ.Exchanges;
 with RabbitMQ.Messages;
 with RabbitMQ.Publishing;
+with RabbitMQ.Consuming;
 with RabbitMQ.Exceptions;
 
 procedure Test_Connection is
@@ -278,8 +279,107 @@ begin
 
       New_Line;
 
+      --  Test consuming
+      Put_Line ("6. Testing Message Consuming");
+
+      --  Create a queue and publish some messages to consume
+      Put_Line ("   Creating test queue for consuming...");
+      declare
+         Info : constant RabbitMQ.Queues.Queue_Info :=
+           RabbitMQ.Queues.Declare_Queue
+             (Ch          => Ch,
+              Name        => "consume-test-queue",
+              Durable     => False,
+              Exclusive   => False,
+              Auto_Delete => True);
+         pragma Unreferenced (Info);
+      begin
+         Put_Line ("   SUCCESS: Queue created");
+      end;
+
+      --  Publish test messages
+      Put_Line ("   Publishing 3 test messages...");
+      for I in 1 .. 3 loop
+         RabbitMQ.Publishing.Publish_To_Queue
+           (Ch    => Ch,
+            Queue => "consume-test-queue",
+            Data  => "Test message" & I'Image);
+      end loop;
+      Put_Line ("   SUCCESS: Messages published");
+
+      --  Test basic.get (polling)
+      Put_Line ("   Testing Get_Message (polling)...");
+      declare
+         Delivery : RabbitMQ.Consuming.Delivery;
+         Got_Msg  : Boolean;
+      begin
+         Got_Msg := RabbitMQ.Consuming.Get_Message
+           (Ch     => Ch,
+            Queue  => "consume-test-queue",
+            Msg    => Delivery,
+            No_Ack => True);
+
+         if Got_Msg then
+            Put_Line ("   SUCCESS: Got message: " &
+                      SU.To_String (Delivery.Message.Content));
+         else
+            Put_Line ("   FAILED: No message received");
+         end if;
+      end;
+
+      --  Test consumer with consume_message
+      Put_Line ("   Testing Start_Consumer and Consume_Message...");
+      declare
+         Consumer_Tag : constant String :=
+           RabbitMQ.Consuming.Start_Consumer
+             (Ch     => Ch,
+              Queue  => "consume-test-queue",
+              No_Ack => False);
+         Delivery : RabbitMQ.Consuming.Delivery;
+         Got_Msg  : Boolean;
+      begin
+         Put_Line ("   Consumer started with tag: " & Consumer_Tag);
+
+         --  Consume remaining messages (should be 2)
+         for I in 1 .. 2 loop
+            Got_Msg := RabbitMQ.Consuming.Consume_Message
+              (Ch         => Ch,
+               Msg        => Delivery,
+               Timeout_Ms => 5000);
+
+            if Got_Msg then
+               Put_Line ("   Got message: " &
+                         SU.To_String (Delivery.Message.Content));
+               --  Acknowledge the message
+               RabbitMQ.Consuming.Ack
+                 (Ch           => Ch,
+                  Delivery_Tag => Delivery.Delivery_Tag);
+               Put_Line ("   Acknowledged message");
+            else
+               Put_Line ("   Timeout waiting for message");
+            end if;
+         end loop;
+
+         --  Cancel the consumer
+         Put_Line ("   Cancelling consumer...");
+         RabbitMQ.Consuming.Cancel_Consumer (Ch, Consumer_Tag);
+         Put_Line ("   SUCCESS: Consumer cancelled");
+      end;
+
+      --  Clean up the consume test queue
+      Put_Line ("   Cleaning up consume test queue...");
+      declare
+         Deleted : constant Natural :=
+           RabbitMQ.Queues.Delete (Ch, "consume-test-queue");
+      begin
+         Put_Line ("   SUCCESS: Deleted queue with" &
+                   Deleted'Image & " messages remaining");
+      end;
+
+      New_Line;
+
       --  Clean up
-      Put_Line ("6. Cleanup");
+      Put_Line ("7. Cleanup");
       Put_Line ("   Closing channel...");
       RabbitMQ.Channels.Close (Ch);
       Put_Line ("   Channel closed.");
