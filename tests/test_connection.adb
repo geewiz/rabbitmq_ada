@@ -1,10 +1,11 @@
---  Test program for RabbitMQ connection, channel, and queue functionality
+--  Test program for RabbitMQ bindings
 
 with Ada.Text_IO;
 with Ada.Exceptions;
 with RabbitMQ.Connections;
 with RabbitMQ.Channels;
 with RabbitMQ.Queues;
+with RabbitMQ.Exchanges;
 with RabbitMQ.Exceptions;
 
 procedure Test_Connection is
@@ -13,8 +14,8 @@ procedure Test_Connection is
    Conn : RabbitMQ.Connections.Connection;
    Ch   : RabbitMQ.Channels.Channel;
 begin
-   Put_Line ("RabbitMQ Connection, Channel, and Queue Test");
-   Put_Line ("============================================");
+   Put_Line ("RabbitMQ Ada Bindings Test");
+   Put_Line ("==========================");
    New_Line;
 
    begin
@@ -55,8 +56,53 @@ begin
 
       New_Line;
 
+      --  Test exchange operations
+      Put_Line ("3. Testing Exchange Operations");
+
+      Put_Line ("   Declaring exchange 'test-exchange' (direct)...");
+      RabbitMQ.Exchanges.Declare_Exchange
+        (Ch          => Ch,
+         Name        => "test-exchange",
+         Kind        => RabbitMQ.Exchanges.Direct,
+         Durable     => False,
+         Auto_Delete => True);
+      Put_Line ("   SUCCESS: Exchange declared");
+
+      Put_Line ("   Declaring exchange 'test-fanout' (fanout)...");
+      RabbitMQ.Exchanges.Declare_Exchange
+        (Ch          => Ch,
+         Name        => "test-fanout",
+         Kind        => RabbitMQ.Exchanges.Fanout,
+         Durable     => False,
+         Auto_Delete => True);
+      Put_Line ("   SUCCESS: Fanout exchange declared");
+
+      --  Test exchange-to-exchange binding
+      Put_Line ("   Binding 'test-fanout' to 'test-exchange'...");
+      RabbitMQ.Exchanges.Bind
+        (Ch          => Ch,
+         Destination => "test-fanout",
+         Source      => "test-exchange",
+         Routing_Key => "test-key");
+      Put_Line ("   SUCCESS: Exchange bound");
+
+      Put_Line ("   Unbinding 'test-fanout' from 'test-exchange'...");
+      RabbitMQ.Exchanges.Unbind
+        (Ch          => Ch,
+         Destination => "test-fanout",
+         Source      => "test-exchange",
+         Routing_Key => "test-key");
+      Put_Line ("   SUCCESS: Exchange unbound");
+
+      Put_Line ("   Deleting exchanges...");
+      RabbitMQ.Exchanges.Delete (Ch, "test-exchange");
+      RabbitMQ.Exchanges.Delete (Ch, "test-fanout");
+      Put_Line ("   SUCCESS: Exchanges deleted");
+
+      New_Line;
+
       --  Test queue operations
-      Put_Line ("3. Testing Queue Operations");
+      Put_Line ("4. Testing Queue Operations");
 
       --  Declare a named queue
       Put_Line ("   Declaring queue 'test-queue'...");
@@ -115,7 +161,8 @@ begin
       --  Purge queue
       Put_Line ("   Purging 'test-queue'...");
       declare
-         Purged : constant Natural := RabbitMQ.Queues.Purge (Ch, "test-queue");
+         Purged : constant Natural :=
+           RabbitMQ.Queues.Purge (Ch, "test-queue");
       begin
          Put_Line ("   SUCCESS: Purged" & Purged'Image & " messages");
       end;
@@ -133,7 +180,7 @@ begin
       New_Line;
 
       --  Clean up
-      Put_Line ("4. Cleanup");
+      Put_Line ("5. Cleanup");
       Put_Line ("   Closing channel...");
       RabbitMQ.Channels.Close (Ch);
       Put_Line ("   Channel closed.");
