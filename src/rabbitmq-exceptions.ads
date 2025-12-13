@@ -41,4 +41,7 @@ package RabbitMQ.Exceptions is
    Resource_Locked : exception;
    Precondition_Failed : exception;
 
+   --  URL parsing exceptions
+   Invalid_URL : exception;
+
 end RabbitMQ.Exceptions;

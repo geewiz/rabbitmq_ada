@@ -8,7 +8,9 @@ project Tests is
    for Create_Missing_Dirs use "True";
 
    for Main use ("test_connection.adb", "test_tls_connection.adb",
-                  "hw_send.adb", "hw_receive.adb");
+                  "hw_send.adb", "hw_receive.adb",
+                  "client_send.adb", "client_receive.adb",
+                  "client_fanout_send.adb", "client_fanout_receive.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use
