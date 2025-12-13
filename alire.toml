@@ -8,3 +8,6 @@ maintainers-logins = ["geewiz"]
 licenses = "MIT"
 website = "https://github.com/geewiz/rabbitmq_ada"
 tags = ["rabbitmq", "amqp", "message", "queue"]
+
+[[depends-on]]
+librabbitmq = "*"
