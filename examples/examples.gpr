@@ -1,13 +1,15 @@
 with "../rabbitmq.gpr";
 
-project Tests is
+project Examples is
 
    for Source_Dirs use (".");
-   for Object_Dir use "../obj/tests";
+   for Object_Dir use "../obj/examples";
    for Exec_Dir use "../bin";
    for Create_Missing_Dirs use "True";
 
-   for Main use ("test_connection.adb", "test_tls_connection.adb");
+   for Main use ("hw_send.adb", "hw_receive.adb",
+                 "client_send.adb", "client_receive.adb",
+                 "client_fanout_send.adb", "client_fanout_receive.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use
@@ -22,4 +24,4 @@ project Tests is
       for Switches ("Ada") use ("-g");
    end Linker;
 
-end Tests;
+end Examples;
