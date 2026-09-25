@@ -1,6 +1,6 @@
 name = "rabbitmq"
 description = "Ada bindings for the librabbitmq C client library"
-version = "0.1.0"
+version = "0.1.1"
 
 authors = ["Jochen Lillich"]
 maintainers = ["Jochen Lillich <hello@geewiz.dev>"]
