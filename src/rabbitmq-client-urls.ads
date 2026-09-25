@@ -32,9 +32,6 @@ package RabbitMQ.Client.URLs is
    --    amqp://user:password@host:port
    --    amqp://user:password@host:port/vhost
    --    amqps://... (same patterns, enables TLS)
-   --  An absent path uses Default_Vhost; a present empty path uses an empty
-   --  vhost. Virtual-host escapes are decoded once; malformed escapes and NUL
-   --  are invalid.
    --
    --  Raises RabbitMQ.Exceptions.Invalid_URL on parse failure
    function Parse (URL : String) return Connection_Params;
