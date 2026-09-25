@@ -39,6 +39,65 @@ package body RabbitMQ.Client.URLs is
          return To_Unbounded_String (Slice (S, Idx + 1, Length (S)));
       end Slice_After;
 
+      function Hex_Value (Digit : Character) return Integer is
+      begin
+         case Digit is
+            when '0' .. '9' =>
+               return Character'Pos (Digit) - Character'Pos ('0');
+            when 'A' .. 'F' =>
+               return Character'Pos (Digit) - Character'Pos ('A') + 10;
+            when 'a' .. 'f' =>
+               return Character'Pos (Digit) - Character'Pos ('a') + 10;
+            when others =>
+               return -1;
+         end case;
+      end Hex_Value;
+
+      function Decode_Vhost (Encoded : Unbounded_String)
+        return Unbounded_String
+      is
+         Source  : constant String := To_String (Encoded);
+         Decoded : Unbounded_String := Null_Unbounded_String;
+         Index   : Natural := Source'First;
+      begin
+         while Index <= Source'Last loop
+            if Source (Index) = '%' then
+               if Index + 2 > Source'Last then
+                  raise RabbitMQ.Exceptions.Invalid_URL
+                    with "Malformed percent escape in virtual host";
+               end if;
+
+               declare
+                  High : constant Integer := Hex_Value (Source (Index + 1));
+                  Low  : constant Integer := Hex_Value (Source (Index + 2));
+               begin
+                  if High < 0 or else Low < 0 then
+                     raise RabbitMQ.Exceptions.Invalid_URL
+                       with "Malformed percent escape in virtual host";
+                  end if;
+
+                  if High = 0 and then Low = 0 then
+                     raise RabbitMQ.Exceptions.Invalid_URL
+                       with "NUL in virtual host";
+                  end if;
+
+                  Append (Decoded, Character'Val (High * 16 + Low));
+               end;
+               Index := Index + 3;
+            else
+               if Source (Index) = Character'Val (0) then
+                  raise RabbitMQ.Exceptions.Invalid_URL
+                    with "NUL in virtual host";
+               end if;
+
+               Append (Decoded, Source (Index));
+               Index := Index + 1;
+            end if;
+         end loop;
+
+         return Decoded;
+      end Decode_Vhost;
+
    begin
       --  Set defaults
       Result.User := To_Unbounded_String (Default_User);
@@ -91,15 +150,7 @@ package body RabbitMQ.Client.URLs is
       Pos := Find (Rest, '/');
       if Pos > 0 then
          Host_Part := Slice_Before (Rest, Pos);
-         declare
-            Vhost : constant Unbounded_String := Slice_After (Rest, Pos);
-         begin
-            if Length (Vhost) > 0 then
-               Result.Virtual_Host := To_Unbounded_String ("/") & Vhost;
-            else
-               Result.Virtual_Host := To_Unbounded_String (Default_Vhost);
-            end if;
-         end;
+         Result.Virtual_Host := Decode_Vhost (Slice_After (Rest, Pos));
       else
          Host_Part := Rest;
       end if;
