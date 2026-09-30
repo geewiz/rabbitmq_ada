@@ -22,10 +22,11 @@ The library is structured in two layers:
 
 ## Requirements
 
-- GNAT Ada compiler (tested with GNAT 13)
+- GNAT Ada compiler (tested with GNAT 16)
 - librabbitmq development package
   - Ubuntu/Debian: `sudo apt install librabbitmq-dev`
-  - Fedora: `sudo dnf install librabbitmq-devel`
+  - Fedora/CentOS/RHEL: `sudo dnf install librabbitmq-devel`
+  - OpenSUSE: `sudo zypper install librabbitmq-devel`
 
 ## Installation
 
@@ -42,6 +43,9 @@ git clone https://github.com/geewiz/rabbitmq_ada.git
 cd rabbitmq-ada
 alr build
 ```
+If using `rabbitmq` with [Alire](https://alire.ada.dev/) on Linux, `alr build` will prompt to
+install the `librabbitmq` system package if not already installed.  On Windows, `alr with` will
+download the `librabbitmq` dependency.
 
 ## Usage
 
