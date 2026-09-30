@@ -1,7 +1,7 @@
 with "config/rabbitmq_config.gpr";
 project Rabbitmq is
 
-   for Library_Name use "Rabbitmq";
+   for Library_Name use "rabbitmq_ada";
    for Library_Version use Project'Library_Name & ".so." & Rabbitmq_Config.Crate_Version;
 
    for Languages use ("Ada", "C");
