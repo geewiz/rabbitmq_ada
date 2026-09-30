@@ -81,4 +81,8 @@ MIT License - see LICENSE file for details.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+Contributions are welcome. When opening a pull request:
+
+- Explain what changed and how you verified it.
+- Update this README if the change affects installation, supported platforms, features, or usage.
+- Do not change the version number in `alire.toml` or edit `CHANGELOG.md`. The maintainer updates both when preparing a new release.
